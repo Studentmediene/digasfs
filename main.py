@@ -23,10 +23,14 @@ class DigasFilesystem(Operations):
         return path
 
     def _listdir(self, full_path):
-        original_filenames = os.listdir(full_path)
+        # Get only the most recent 1000 files, for performance reasons
+        original_filenames = sorted(os.listdir(full_path), key=lambda s: os.path.getmtime(os.path.join(full_path, s)), reverse=True)[0:1000]
         nice_filenames = []
 
         for fn in original_filenames:
+            if os.path.isdir(os.path.join(full_path, fn)):
+                nice_filenames.append(fn)
+
             _, extension = os.path.splitext(fn)
             if extension in (".wav", ".WAV", ".mp3", ".MP3"):
                 try:
@@ -169,7 +173,7 @@ class DigasFilesystem(Operations):
         return 0
 
 def main(mountpoint, root):
-    FUSE(DigasFilesystem(root), mountpoint, foreground=True)
+    FUSE(DigasFilesystem(root), mountpoint, foreground=False, allow_other=True, ro=True)
 
 if __name__ == '__main__':
     main(sys.argv[2], sys.argv[1])
